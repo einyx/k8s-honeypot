@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ewsposter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ewsposter
+  template:
+    metadata:
+      labels:
+        app: ewsposter
+    spec:
+      containers:
+      - name: ewsposter
+        image: ghcr.io/telekom-security/ewsposter:24.04.1
+        env:
+        - name: EWS_HPFEEDS_ENABLE
+          value: "false"
+        - name: EWS_HPFEEDS_HOST
+          value: "host"
+        - name: EWS_HPFEEDS_PORT
+          value: "port"
+        - name: EWS_HPFEEDS_CHANNELS
+          value: "channels"
+        - name: EWS_HPFEEDS_IDENT
+          value: "user"
+        - name: EWS_HPFEEDS_SECRET
+          value: "secret"
+        - name: EWS_HPFEEDS_TLSCERT
+          value: "false"
+        - name: EWS_HPFEEDS_FORMAT
+          value: "json"
+        resources:
+          limits:
+            memory: "256Mi"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: tpot-data

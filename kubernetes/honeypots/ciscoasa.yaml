@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ciscoasa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ciscoasa
+  template:
+    metadata:
+      labels:
+        app: ciscoasa
+    spec:
+      containers:
+      - name: ciscoasa
+        image: ghcr.io/telekom-security/ciscoasa:24.04.1
+        ports:
+        - containerPort: 5000
+          protocol: UDP
+        - containerPort: 8443
+        resources:
+          limits:
+            memory: "256Mi"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsUser: 2000
+          runAsGroup: 2000
+        volumeMounts:
+        - name: data
+          mountPath: /var/log/ciscoasa
+          subPath: ciscoasa/log
+        - name: tmp
+          mountPath: /tmp/ciscoasa
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: tpot-data
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ciscoasa
+spec:
+  type: NodePort
+  selector:
+    app: ciscoasa
+  ports:
+  - name: udp
+    port: 5000
+    targetPort: 5000
+    protocol: UDP
+    nodePort: 30500
+  - name: https
+    port: 8443
+    targetPort: 8443
+    nodePort: 30843

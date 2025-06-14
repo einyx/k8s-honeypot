@@ -1,0 +1,122 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: map-redis
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: map-redis
+  template:
+    metadata:
+      labels:
+        app: map-redis
+    spec:
+      containers:
+      - name: redis
+        image: ghcr.io/telekom-security/redis:24.04.1
+        resources:
+          limits:
+            memory: "256Mi"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsUser: 2000
+          runAsGroup: 2000
+        tty: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: map-redis
+spec:
+  selector:
+    app: map-redis
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: map-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: map-web
+  template:
+    metadata:
+      labels:
+        app: map-web
+    spec:
+      containers:
+      - name: map
+        image: ghcr.io/telekom-security/map:24.04.1
+        env:
+        - name: MAP_COMMAND
+          value: "AttackMapServer.py"
+        ports:
+        - containerPort: 64299
+        resources:
+          limits:
+            memory: "512Mi"
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+        tty: true
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: map-web
+spec:
+  selector:
+    app: map-web
+  ports:
+  - port: 64299
+    targetPort: 64299
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: map-data
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: map-data
+  template:
+    metadata:
+      labels:
+        app: map-data
+    spec:
+      initContainers:
+      - name: wait-for-elasticsearch
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z elasticsearch 9200; do echo waiting for elasticsearch; sleep 2; done;']
+      containers:
+      - name: map
+        image: ghcr.io/telekom-security/map:24.04.1
+        env:
+        - name: MAP_COMMAND
+          value: "DataServer_v2.py"
+        - name: TPOT_ATTACKMAP_TEXT
+          valueFrom:
+            configMapKeyRef:
+              name: tpot-config
+              key: TPOT_ATTACKMAP_TEXT
+        - name: TZ
+          valueFrom:
+            configMapKeyRef:
+              name: tpot-config
+              key: TPOT_ATTACKMAP_TEXT_TIMEZONE
+        resources:
+          limits:
+            memory: "512Mi"
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+        tty: true

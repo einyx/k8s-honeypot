@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logstash
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logstash
+  template:
+    metadata:
+      labels:
+        app: logstash
+    spec:
+      containers:
+      - name: logstash
+        image: ghcr.io/telekom-security/logstash:24.04.1
+        env:
+        - name: LS_JAVA_OPTS
+          valueFrom:
+            configMapKeyRef:
+              name: tpot-config
+              key: LS_JAVA_OPTS
+        - name: TPOT_TYPE
+          valueFrom:
+            configMapKeyRef:
+              name: tpot-config
+              key: TPOT_TYPE
+        - name: LS_SSL_VERIFICATION
+          value: "full"
+        ports:
+        - containerPort: 64305
+        resources:
+          limits:
+            memory: "2Gi"
+          requests:
+            memory: "1Gi"
+            cpu: "500m"
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        readinessProbe:
+          tcpSocket:
+            port: 64305
+          initialDelaySeconds: 30
+          periodSeconds: 10
+      initContainers:
+      - name: wait-for-elasticsearch
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z elasticsearch 9200; do echo waiting for elasticsearch; sleep 2; done;']
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: tpot-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: logstash
+spec:
+  selector:
+    app: logstash
+  ports:
+  - port: 64305
+    targetPort: 64305

@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redishoneypot
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redishoneypot
+  template:
+    metadata:
+      labels:
+        app: redishoneypot
+    spec:
+      containers:
+      - name: redishoneypot
+        image: ghcr.io/telekom-security/redishoneypot:24.04.1
+        ports:
+        - containerPort: 6379
+        resources:
+          limits:
+            memory: "256Mi"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsUser: 2000
+          runAsGroup: 2000
+        volumeMounts:
+        - name: data
+          mountPath: /var/log/redishoneypot
+          subPath: redishoneypot/log
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: tpot-data
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redishoneypot
+spec:
+  type: NodePort
+  selector:
+    app: redishoneypot
+  ports:
+  - port: 6379
+    targetPort: 6379
+    nodePort: 30379

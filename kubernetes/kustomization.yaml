@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: tpot
+
+resources:
+  - namespace.yaml
+  - configmap.yaml
+  - storage.yaml
+  - elastic/
+  - honeypots/
+  - nsm/
+  - nginx/
+  - services/
+  - services.yaml
+
+labels:
+- pairs:
+    app.kubernetes.io/name: tpot
+    app.kubernetes.io/version: "24.04.1"

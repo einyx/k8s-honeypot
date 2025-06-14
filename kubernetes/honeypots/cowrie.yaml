@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cowrie
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cowrie
+  template:
+    metadata:
+      labels:
+        app: cowrie
+    spec:
+      initContainers:
+      - name: init-dirs
+        image: busybox:1.35
+        command: ['sh', '-c', 'mkdir -p /home/cowrie/cowrie/{log,dl,etc} && chown -R 2000:2000 /home/cowrie/']
+        volumeMounts:
+        - name: cowrie-home
+          mountPath: /home/cowrie
+      containers:
+      - name: cowrie
+        image: ghcr.io/telekom-security/cowrie:24.04.1
+        ports:
+        - containerPort: 22
+        - containerPort: 23
+        resources:
+          limits:
+            memory: "512Mi"
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+        securityContext:
+          readOnlyRootFilesystem: false
+          runAsUser: 2000
+          runAsGroup: 2000
+        volumeMounts:
+        - name: data
+          mountPath: /data
+          subPath: cowrie
+        - name: cowrie-home
+          mountPath: /home/cowrie/cowrie/log
+          subPath: log
+        - name: cowrie-home
+          mountPath: /home/cowrie/cowrie/dl
+          subPath: dl
+        - name: cowrie-home
+          mountPath: /home/cowrie/cowrie/etc
+          subPath: etc
+        - name: tmp
+          mountPath: /tmp/cowrie
+        - name: tmp-data
+          mountPath: /tmp/cowrie/data
+        readinessProbe:
+          tcpSocket:
+            port: 22
+          initialDelaySeconds: 20
+          periodSeconds: 10
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: tpot-data
+      - name: cowrie-home
+        emptyDir:
+          sizeLimit: 1Gi
+      - name: tmp
+        emptyDir:
+          sizeLimit: 100Mi
+      - name: tmp-data
+        emptyDir:
+          sizeLimit: 100Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cowrie
+spec:
+  type: NodePort
+  selector:
+    app: cowrie
+  ports:
+  - name: ssh
+    port: 22
+    targetPort: 22
+    nodePort: 30022
+  - name: telnet
+    port: 23
+    targetPort: 23
+    nodePort: 30023

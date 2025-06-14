@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fatt
+spec:
+  selector:
+    matchLabels:
+      app: fatt
+  template:
+    metadata:
+      labels:
+        app: fatt
+    spec:
+      hostNetwork: true
+      containers:
+      - name: fatt
+        image: ghcr.io/telekom-security/fatt:24.04.1
+        resources:
+          limits:
+            memory: "512Mi"
+          requests:
+            memory: "256Mi"
+            cpu: "200m"
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_NICE
+            - NET_RAW
+          runAsUser: 0
+        volumeMounts:
+        - name: data
+          mountPath: /opt/fatt/log
+          subPath: fatt/log
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: tpot-data

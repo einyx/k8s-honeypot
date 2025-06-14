@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: tpot-config
+data:
+  TPOT_TYPE: "HIVE"
+  TPOT_REPO: "ghcr.io/telekom-security"
+  TPOT_VERSION: "24.04.1"
+  TPOT_BLACKHOLE: "DISABLED"
+  TPOT_PERSISTENCE: "on"
+  TPOT_PERSISTENCE_CYCLES: "30"
+  TPOT_ATTACKMAP_TEXT: "ENABLED"
+  TPOT_ATTACKMAP_TEXT_TIMEZONE: "UTC"
+  OINKCODE: "OPEN"
+  ES_JAVA_OPTS: "-Xms2048m -Xmx2048m"
+  LS_JAVA_OPTS: "-Xms1024m -Xmx1024m"

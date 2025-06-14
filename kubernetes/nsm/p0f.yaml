@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: p0f
+spec:
+  selector:
+    matchLabels:
+      app: p0f
+  template:
+    metadata:
+      labels:
+        app: p0f
+    spec:
+      hostNetwork: true
+      containers:
+      - name: p0f
+        image: ghcr.io/telekom-security/p0f:24.04.1
+        resources:
+          limits:
+            memory: "256Mi"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        securityContext:
+          readOnlyRootFilesystem: true
+          runAsUser: 2000
+          runAsGroup: 2000
+        volumeMounts:
+        - name: data
+          mountPath: /var/log/p0f
+          subPath: p0f/log
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: tpot-data

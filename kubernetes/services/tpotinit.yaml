@@ -1,0 +1,74 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tpotinit
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tpotinit
+  template:
+    metadata:
+      labels:
+        app: tpotinit
+    spec:
+      serviceAccountName: tpot-init
+      containers:
+      - name: tpotinit
+        image: ghcr.io/telekom-security/tpotinit:24.04.1
+        envFrom:
+        - configMapRef:
+            name: tpot-config
+        resources:
+          limits:
+            memory: "256Mi"
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+          runAsUser: 2000
+          runAsGroup: 2000
+        volumeMounts:
+        - name: data
+          mountPath: /data
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: data
+        persistentVolumeClaim:
+          claimName: tpot-data
+      - name: tmp
+        emptyDir:
+          sizeLimit: 500Mi
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: tpot-init
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: tpot-init
+rules:
+- apiGroups: [""]
+  resources: ["pods", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "daemonsets"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: tpot-init
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: tpot-init
+subjects:
+- kind: ServiceAccount
+  name: tpot-init
